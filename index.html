@@ -1,0 +1,2774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BananaLab - Find Your Perfect Banana Match</title>
+    
+    <!-- Teachable Machine Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #FFF9E3;
+            --bg-secondary: #FFF4D6;
+            --banana-yellow: #FFE9A8;
+            --banana-accent: #FFDB7A;
+            --banana-peel: #F4C430;
+            --banana-peel-dark: #E0A800;
+            --cream: #FFF8E7;
+            --beige: #F5EDD6;
+            --text-dark: #5C4B37;
+            --text-light: #8B7355;
+            --green-leaf: #B8D5A8;
+            --white: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .wave-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            opacity: 0.08;
+        }
+
+        .wave-1 {
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 30% 50%, var(--banana-yellow), transparent 50%);
+            animation: wave-move 20s ease-in-out infinite;
+        }
+
+        .wave-2 {
+            top: -30%;
+            left: -30%;
+            background: radial-gradient(circle at 70% 70%, var(--banana-accent), transparent 50%);
+            animation: wave-move 25s ease-in-out infinite reverse;
+        }
+
+        .wave-3 {
+            bottom: -50%;
+            right: -50%;
+            background: radial-gradient(circle at 50% 30%, var(--green-leaf), transparent 50%);
+            animation: wave-move 30s ease-in-out infinite;
+        }
+
+        @keyframes wave-move {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            33% {
+                transform: translate(50px, -50px) rotate(5deg);
+            }
+            50% {
+                transform: translate(-20px, 20px) rotate(-5deg);
+            }
+            66% {
+                transform: translate(20px, 30px) rotate(3deg);
+            }
+        }
+
+        #splash-screen,
+        #main-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #FFF8E3 0%, #FFF0C8 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: splashFadeOut 0.8s ease 2.5s forwards;
+        }
+
+        @keyframes splashFadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+
+        .banana-animation {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .banana-body {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 140px;
+            background: var(--cream);
+            border-radius: 40px 40px 20px 20px;
+            animation: bananaAppear 0.5s ease;
+        }
+
+        @keyframes bananaAppear {
+            from {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .peel-left, .peel-right {
+            position: absolute;
+            top: 50%;
+            width: 50px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--banana-accent) 0%, var(--banana-yellow) 100%);
+            border-radius: 25px;
+            transform-origin: bottom center;
+        }
+
+        .peel-left {
+            left: 50%;
+            transform: translate(-100%, -50%) rotate(0deg);
+            animation: peelLeft 1s ease 0.5s forwards;
+        }
+
+        .peel-right {
+            right: 50%;
+            transform: translate(100%, -50%) rotate(0deg);
+            animation: peelRight 1s ease 0.5s forwards;
+        }
+
+        @keyframes peelLeft {
+            to {
+                transform: translate(-150%, -50%) rotate(-45deg);
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes peelRight {
+            to {
+                transform: translate(150%, -50%) rotate(45deg);
+                opacity: 0.7;
+            }
+        }
+
+        .splash-logo {
+            margin-top: 20px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            opacity: 0;
+            animation: logoReveal 0.6s ease 1.2s forwards;
+        }
+
+        @keyframes logoReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            from {
+                transform: translateY(20px);
+            }
+        }
+
+        .splash-tagline {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1rem;
+            color: var(--text-light);
+            opacity: 0;
+            animation: logoReveal 0.6s ease 1.5s forwards;
+        }
+
+        #main-content {
+            opacity: 0;
+            animation: contentFadeIn 0.8s ease 2.8s forwards;
+        }
+
+        @keyframes contentFadeIn {
+            to { opacity: 1; }
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(15px);
+            padding: 1.2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 2px solid var(--beige);
+            box-shadow: 0 3px 25px rgba(0, 0, 0, 0.06);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-logo-img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.1));
+        }
+
+        .nav-brand:hover .nav-logo-img {
+            animation: wiggle 0.6s ease;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-12deg); }
+            75% { transform: rotate(12deg); }
+        }
+
+        .nav-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2.5rem;
+            align-items: center;
+            list-style: none;
+        }
+
+        .nav-link {
+            font-family: 'Quicksand', sans-serif;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding: 0.5rem 0;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--banana-yellow), var(--banana-accent));
+            transform: translateX(-50%);
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .nav-link:hover::before,
+        .nav-link.active::before {
+            width: 100%;
+        }
+
+        .nav-link:hover {
+            color: var(--text-dark);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .nav-scan-btn {
+            background: linear-gradient(135deg, var(--banana-yellow) 0%, var(--banana-accent) 100%);
+            color: var(--text-dark);
+            padding: 0.85rem 2rem;
+            border-radius: 50px;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 219, 122, 0.4);
+            cursor: pointer;
+        }
+
+        .nav-scan-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(255, 219, 122, 0.6);
+        }
+
+        .nav-scan-btn::before {
+            display: none !important;
+        }
+
+        .nav-scan-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .hero-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-bottom: 6rem;
+            min-height: 70vh;
+        }
+
+        .hero-content {
+            animation: slideInLeft 0.8s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .hero-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .hero-title .highlight {
+            color: var(--text-dark);
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            height: 18px;
+            background: linear-gradient(90deg, var(--banana-yellow), var(--banana-accent));
+            opacity: 0.7;
+            z-index: -1;
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(255, 219, 122, 0.3);
+        }
+
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-light);
+            line-height: 1.8;
+            margin-bottom: 2.5rem;
+            max-width: 90%;
+        }
+
+        .hero-subtitle .bold {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, var(--text-dark) 0%, #7A6550 100%);
+            color: var(--cream);
+            padding: 1.25rem 3rem;
+            border-radius: 50px;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(92, 75, 55, 0.3);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .hero-cta::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .hero-cta:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(92, 75, 55, 0.4);
+        }
+
+        .hero-visual {
+            position: relative;
+            animation: slideInRight 0.8s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .hero-banana-img {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.1));
+            animation: floatBanana 3s ease-in-out infinite;
+        }
+
+        @keyframes floatBanana {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .features-section {
+            margin-bottom: 6rem;
+        }
+
+        .features-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.5rem;
+            text-align: center;
+            color: var(--text-dark);
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--cream), var(--bg-secondary));
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 3px solid var(--banana-yellow);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            border-color: var(--banana-peel);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 1.5rem;
+            stroke: var(--banana-peel);
+            stroke-width: 2;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .feature-card:nth-child(1) .feature-icon {
+            animation-delay: 0s;
+        }
+
+        .feature-card:nth-child(2) .feature-icon {
+            animation-delay: 0.3s;
+        }
+
+        .feature-card:nth-child(3) .feature-icon {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .feature-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .feature-description {
+            color: var(--text-light);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .scan-page {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 3rem 2rem 5rem 2rem;
+        }
+
+        .scan-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+            animation: slideDown 0.6s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scan-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 3rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-dark), var(--banana-peel));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .scan-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-light);
+        }
+
+        .scan-card {
+            background: var(--white);
+            border-radius: 30px;
+            padding: 3.5rem;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+            border: 3px solid var(--beige);
+            transition: all 0.3s ease;
+            margin-bottom: 3rem;
+        }
+
+        .scan-card:hover {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            transform: translateY(-3px);
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 1.2rem;
+            margin-bottom: 2.5rem;
+            background: var(--bg-secondary);
+            padding: 0.6rem;
+            border-radius: 18px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1.1rem 2rem;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: var(--white);
+            color: var(--text-dark);
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+        }
+
+        .tab-icon {
+            width: 22px;
+            height: 22px;
+            stroke-width: 2.5;
+        }
+
+        .scan-container {
+            display: none;
+        }
+
+        .scan-container.active {
+            display: block;
+        }
+
+        .scan-area-wrapper {
+            position: relative;
+            height: 500px;
+            margin-bottom: 2rem;
+        }
+
+        .scan-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--banana-yellow));
+            border: 3px dashed var(--banana-accent);
+            border-radius: 25px;
+            padding: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            overflow: hidden;
+        }
+
+        .scan-area::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, var(--banana-yellow) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .scan-area:hover::before {
+            opacity: 0.4;
+        }
+
+        .scan-area:hover {
+            border-color: var(--banana-peel);
+            transform: scale(1.02);
+            box-shadow: inset 0 0 40px rgba(255, 219, 122, 0.25);
+        }
+
+        #camera-placeholder,
+        #upload-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .banana-scan-icon {
+            width: 110px;
+            height: 110px;
+            margin-bottom: 2rem;
+            opacity: 0.85;
+            transition: all 0.4s ease;
+        }
+
+        .scan-area:hover .banana-scan-icon {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        .scan-text {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            margin-bottom: 0.6rem;
+            font-weight: 700;
+        }
+
+        .scan-hint {
+            font-size: 1.05rem;
+            color: var(--text-light);
+        }
+
+        #webcam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 22px;
+            display: none;
+            background: #000;
+            z-index: 2;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            animation: zoomIn 0.5s ease;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .preview-img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1.2rem 2.5rem;
+            border: none;
+            border-radius: 18px;
+            font-family: 'Quicksand', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.7rem;
+        }
+
+        .btn-icon {
+            width: 22px;
+            height: 22px;
+            stroke-width: 2.5;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--text-dark) 0%, #7A6550 100%);
+            color: var(--cream);
+            box-shadow: 0 6px 20px rgba(92, 75, 55, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(92, 75, 55, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--banana-yellow), var(--banana-accent));
+            color: var(--text-dark);
+            box-shadow: 0 6px 20px rgba(255, 233, 168, 0.35);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, var(--banana-accent), var(--banana-peel));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 28px rgba(255, 233, 168, 0.45);
+        }
+
+        #btn-analyze {
+            margin-top: 1rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            animation: fadeInOverlay 0.3s ease;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .loading-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 2.5rem;
+            position: relative;
+        }
+
+        .loading-spinner::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border: 8px solid var(--banana-yellow);
+            border-top: 8px solid var(--banana-peel);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-spinner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background: url('LOGOAOLAI.PNG') center/contain no-repeat;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.85); }
+        }
+
+        .loading-text {
+            font-family: 'Fredoka', sans-serif;
+            color: var(--cream);
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtext {
+            font-family: 'Nunito', sans-serif;
+            color: var(--banana-yellow);
+            font-size: 1.1rem;
+        }
+
+        .result-section {
+            display: none;
+            animation: slideUp 0.6s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-container {
+            background: var(--white);
+            border-radius: 30px;
+            padding: 3.5rem;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+            border: 3px solid var(--beige);
+            margin-top: 3rem;
+        }
+
+        .stage-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            height: 60px;
+        }
+
+        .stage-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--beige);
+            transition: all 0.4s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .stage-dot:hover {
+            background: var(--banana-yellow);
+            transform: scale(1.3);
+        }
+
+        .stage-dot.active {
+            width: 50px;
+            height: 50px;
+            background: var(--text-dark);
+            box-shadow: 0 5px 18px rgba(92, 75, 55, 0.5);
+        }
+
+        .stage-dot.active::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            border-radius: 50%;
+            border: 3px solid var(--text-dark);
+            animation: ripple 1.5s ease-out infinite;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.8);
+                opacity: 0;
+            }
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--banana-yellow));
+            padding: 2.5rem;
+            border-radius: 20px;
+            border: 3px solid var(--banana-accent);
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(255, 219, 122, 0.3);
+        }
+
+        .result-label {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-light);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .result-value {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.8rem;
+        }
+
+        .result-description {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-top: 0.8rem;
+        }
+
+        .shelf-life-detail {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .confidence-bar {
+            background: rgba(255, 255, 255, 0.65);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 1.2rem;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .confidence-fill {
+            background: linear-gradient(90deg, var(--banana-peel), var(--banana-accent));
+            height: 100%;
+            border-radius: 5px;
+            transition: width 1.5s ease;
+            box-shadow: 0 0 10px rgba(244, 196, 48, 0.5);
+        }
+
+        .tips-box {
+            background: var(--cream);
+            border: 3px solid var(--green-leaf);
+            border-radius: 20px;
+            padding: 2.5rem;
+        }
+
+        .tips-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .tips-icon {
+            width: 26px;
+            height: 26px;
+            fill: var(--banana-peel);
+        }
+
+        .tips-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .tips-list li {
+            color: var(--text-light);
+            font-size: 1.05rem;
+            padding-left: 2.2rem;
+            position: relative;
+            line-height: 1.7;
+            transition: all 0.3s ease;
+        }
+
+        .tips-list li:hover {
+            transform: translateX(8px);
+            color: var(--text-dark);
+        }
+
+        .tips-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 7px;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--banana-yellow), var(--banana-accent));
+            border-radius: 50%;
+            border: 2px solid var(--banana-peel);
+            transition: all 0.3s ease;
+        }
+
+        .tips-list li:hover::before {
+            transform: scale(1.2);
+            box-shadow: 0 3px 10px rgba(255, 219, 122, 0.5);
+        }
+
+        .about-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem 5rem 2rem;
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 5rem;
+            animation: slideDown 0.6s ease;
+        }
+
+        .about-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 3.5rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-dark), var(--banana-peel));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .about-intro {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+
+        .overlap-cards-container {
+            position: relative;
+            min-height: 550px;
+            margin-bottom: 6rem;
+        }
+
+        .overlap-card {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 3.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            border: 3px solid var(--banana-yellow);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            width: 48%;
+        }
+
+        .overlap-card:hover {
+            transform: translateY(-20px) scale(1.05);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+            border-color: var(--banana-peel);
+            z-index: 10 !important;
+        }
+
+        .overlap-card-1 {
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .overlap-card-2 {
+            top: 80px;
+            right: 0;
+            z-index: 1;
+            border-color: var(--green-leaf);
+        }
+
+        .overlap-card-2:hover {
+            border-color: #9BC485;
+        }
+
+        .overlap-card-icon {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 2rem;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, var(--banana-yellow), var(--banana-accent));
+            border-radius: 20px;
+            stroke: var(--text-dark);
+            stroke-width: 2;
+            box-shadow: 0 8px 25px rgba(255, 219, 122, 0.4);
+        }
+
+        .overlap-card-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2rem;
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+        }
+
+        .overlap-card-text {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            line-height: 1.9;
+        }
+
+        .stages-timeline {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 244, 214, 0.9));
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 4rem 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            border: 3px solid var(--banana-yellow);
+            margin-bottom: 4rem;
+        }
+
+        .stages-timeline-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.2rem;
+            text-align: center;
+            color: var(--text-dark);
+            margin-bottom: 3rem;
+        }
+
+        .stages-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            position: relative;
+        }
+
+        .stages-grid::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 8%;
+            right: 8%;
+            height: 4px;
+            background: linear-gradient(90deg, #88C988, var(--banana-yellow), var(--banana-accent), #CD853F);
+            border-radius: 2px;
+            z-index: 0;
+        }
+
+        .stage-item {
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            background: var(--white);
+            border-radius: 25px;
+            transition: all 0.4s ease;
+            border: 3px solid var(--beige);
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stage-item:hover {
+            transform: translateY(-15px) scale(1.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        .stage-item[data-stage="1"]:hover {
+            background: linear-gradient(135deg, #88C988, #A5D6A5);
+            border-color: #5DA85D;
+        }
+
+        .stage-item[data-stage="2"]:hover {
+            background: linear-gradient(135deg, #FFE9A8, #FFF4C5);
+            border-color: #FFD87C;
+        }
+
+        .stage-item[data-stage="3"]:hover {
+            background: linear-gradient(135deg, #FFDB7A, #FFE5A0);
+            border-color: #FFC850;
+        }
+
+        .stage-item[data-stage="3"]:hover::before,
+        .stage-item[data-stage="3"]:hover::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #8B6F47;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .stage-item[data-stage="3"]:hover::before {
+            top: 20%;
+            left: 20%;
+            box-shadow: 
+                50px 10px 0 #8B6F47,
+                15px 40px 0 #A0826D;
+        }
+
+        .stage-item[data-stage="3"]:hover::after {
+            bottom: 25%;
+            right: 22%;
+            box-shadow: 
+                -35px 8px 0 #A0826D,
+                -12px -18px 0 #8B6F47;
+        }
+
+        .stage-item[data-stage="4"]:hover {
+            background: linear-gradient(135deg, #A0826D, #B89A7D);
+            border-color: #8B6F47;
+        }
+
+        .stage-item[data-stage="4"]:hover::before,
+        .stage-item[data-stage="4"]:hover::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #6B4423;
+            border-radius: 50%;
+            opacity: 0.9;
+        }
+
+        .stage-item[data-stage="4"]:hover::before {
+            top: 18%;
+            left: 18%;
+            box-shadow: 
+                45px 8px 0 #6B4423,
+                12px 35px 0 #8B6F47,
+                55px 38px 0 #6B4423;
+        }
+
+        .stage-item[data-stage="4"]:hover::after {
+            bottom: 22%;
+            right: 20%;
+            box-shadow: 
+                -30px 10px 0 #8B6F47,
+                -10px -15px 0 #6B4423,
+                -38px -8px 0 #6B4423;
+        }
+
+        .stage-number {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stage-name {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            line-height: 1.5;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tech-glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            border-radius: 40px;
+            padding: 4rem;
+            border: 3px solid rgba(255, 233, 168, 0.5);
+            text-align: center;
+            transition: all 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tech-glass-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 233, 168, 0.2), transparent 60%);
+            animation: tech-glow 6s ease-in-out infinite;
+        }
+
+        @keyframes tech-glow {
+            0%, 100% {
+                transform: translate(0, 0);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translate(20px, 20px);
+                opacity: 0.8;
+            }
+        }
+
+        .tech-glass-card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15);
+            border-color: var(--banana-accent);
+        }
+
+        .tech-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.2rem;
+            color: var(--text-dark);
+            margin-bottom: 1.8rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-text {
+            color: var(--text-light);
+            font-size: 1.15rem;
+            line-height: 2;
+            max-width: 850px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+@media (max-width: 968px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        text-align: center;
+        min-height: auto;
+    }
+
+    .hero-visual {
+        order: -1;
+    }
+
+    .hero-banana-img {
+        max-width: 350px;
+    }
+
+    .hero-subtitle {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .result-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .overlap-cards-container {
+        min-height: auto;
+    }
+
+    .overlap-card {
+        position: relative !important;
+        width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        margin-bottom: 2rem;
+    }
+
+    .overlap-card-2 {
+        top: 0 !important;
+    }
+
+    .stages-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .stages-grid::before {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem 0;
+    }
+
+    .nav-container {
+        padding: 0 1.5rem;
+    }
+
+    .nav-logo-img {
+        width: 45px;
+        height: 45px;
+    }
+
+    .nav-title {
+        font-size: 1.4rem;
+    }
+
+    .nav-menu {
+        gap: 1.8rem;
+    }
+
+    .nav-link {
+        font-size: 0.95rem;
+    }
+
+    .nav-scan-btn {
+        padding: 0.7rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .nav-scan-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .home-page, .scan-page, .about-page {
+        padding: 2.5rem 1.5rem;
+    }
+
+    .hero-section {
+        gap: 2rem;
+        margin-bottom: 4rem;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .hero-cta {
+        padding: 1rem 2.2rem;
+        font-size: 1rem;
+    }
+
+    .features-title {
+        font-size: 2.2rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .feature-card {
+        padding: 2.2rem 1.8rem;
+    }
+
+    .feature-icon {
+        width: 65px;
+        height: 65px;
+    }
+
+    .feature-title {
+        font-size: 1.4rem;
+    }
+
+    .feature-description {
+        font-size: 0.98rem;
+    }
+
+    .scan-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .scan-title {
+        font-size: 2.5rem;
+    }
+
+    .scan-subtitle {
+        font-size: 1rem;
+    }
+
+    .scan-card {
+        padding: 2.5rem 2rem;
+    }
+
+    .scan-area-wrapper {
+        height: 400px;
+    }
+
+    .button-group {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .btn {
+        padding: 1.1rem 2rem;
+    }
+
+    .result-container {
+        padding: 2.5rem 2rem;
+    }
+
+    .stage-visual {
+        gap: 1.2rem;
+        height: 50px;
+        margin-bottom: 2.5rem;
+    }
+
+    .stage-dot {
+        width: 14px;
+        height: 14px;
+    }
+
+    .stage-dot.active {
+        width: 45px;
+        height: 45px;
+    }
+
+    .result-value {
+        font-size: 1.8rem;
+    }
+
+    .result-description {
+        font-size: 0.92rem;
+    }
+
+    .tips-title {
+        font-size: 1.3rem;
+    }
+
+    .tips-list li {
+        font-size: 0.98rem;
+    }
+
+    .about-title {
+        font-size: 2.8rem;
+    }
+
+    .about-intro {
+        font-size: 1.05rem;
+    }
+
+    .overlap-card {
+        padding: 2.8rem 2.2rem;
+    }
+
+    .overlap-card-title {
+        font-size: 1.8rem;
+    }
+
+    .overlap-card-text {
+        font-size: 1.05rem;
+    }
+
+    .stages-timeline {
+        padding: 3rem 2rem;
+    }
+
+    .stages-timeline-title {
+        font-size: 2rem;
+    }
+
+    .stage-item {
+        padding: 2rem 1.3rem;
+    }
+
+    .stage-number {
+        font-size: 2.8rem;
+    }
+
+    .stage-name {
+        font-size: 1.1rem;
+    }
+
+    .tech-glass-card {
+        padding: 3.5rem 2.5rem;
+    }
+
+    .tech-title {
+        font-size: 2rem;
+    }
+
+    .tech-text {
+        font-size: 1.05rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.8rem 0;
+    }
+
+    .nav-container {
+        padding: 0 1rem;
+    }
+
+    .nav-logo-img {
+        width: 38px;
+        height: 38px;
+    }
+
+    .nav-title {
+        font-size: 1.15rem;
+    }
+
+    .nav-menu li:first-child,
+    .nav-menu li:nth-child(2) {
+        display: none;
+    }
+
+    .nav-scan-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.85rem;
+    }
+
+    .nav-scan-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .home-page, .scan-page, .about-page {
+        padding: 2rem 1rem;
+    }
+
+    .hero-section {
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .hero-title {
+        font-size: 1.9rem;
+        line-height: 1.3;
+    }
+
+    .hero-title .highlight::after {
+        height: 14px;
+        bottom: 5px;
+    }
+
+    .hero-subtitle {
+        font-size: 0.92rem;
+        margin-bottom: 2rem;
+    }
+
+    .hero-cta {
+        padding: 0.85rem 1.8rem;
+        font-size: 0.92rem;
+        gap: 0.5rem;
+    }
+
+    .hero-banana-img {
+        max-width: 280px;
+    }
+
+    .features-section {
+        margin-bottom: 4rem;
+    }
+
+    .features-title {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .feature-icon {
+        width: 55px;
+        height: 55px;
+        margin-bottom: 1.3rem;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .feature-description {
+        font-size: 0.9rem;
+        line-height: 1.65;
+    }
+
+    .scan-header {
+        margin-bottom: 2rem;
+    }
+
+    .scan-title {
+        font-size: 2rem;
+    }
+
+    .scan-subtitle {
+        font-size: 0.92rem;
+    }
+
+    .scan-card {
+        padding: 2rem 1.3rem;
+        border-radius: 22px;
+    }
+
+    .tab-nav {
+        gap: 0.8rem;
+        padding: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .tab-button {
+        padding: 0.85rem 1.3rem;
+        font-size: 0.9rem;
+        gap: 0.5rem;
+    }
+
+    .tab-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .scan-area-wrapper {
+        height: 320px;
+        margin-bottom: 1.5rem;
+    }
+
+    .banana-scan-icon {
+        width: 75px;
+        height: 75px;
+        margin-bottom: 1.3rem;
+    }
+
+    .scan-text {
+        font-size: 1.1rem;
+    }
+
+    .scan-hint {
+        font-size: 0.88rem;
+    }
+
+    .button-group {
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        padding: 0.95rem 1.8rem;
+        font-size: 0.9rem;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 19px;
+        height: 19px;
+    }
+
+    #btn-analyze {
+        margin-top: 0.8rem;
+    }
+
+    .result-container {
+        padding: 2rem 1.3rem;
+        margin-top: 2rem;
+    }
+
+    .stage-visual {
+        gap: 1rem;
+        height: 45px;
+        margin-bottom: 2rem;
+    }
+
+    .stage-dot {
+        width: 12px;
+        height: 12px;
+    }
+
+    .stage-dot.active {
+        width: 40px;
+        height: 40px;
+    }
+
+    .result-grid {
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+    }
+
+    .result-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .result-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .result-value {
+        font-size: 1.6rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .result-description {
+        font-size: 0.88rem;
+    }
+
+    .confidence-bar {
+        height: 8px;
+        margin-top: 1rem;
+    }
+
+    .shelf-life-detail {
+        font-size: 0.85rem;
+        margin-top: 0.8rem;
+    }
+
+    .tips-box {
+        padding: 2rem 1.5rem;
+    }
+
+    .tips-title {
+        font-size: 1.15rem;
+        margin-bottom: 1.3rem;
+        gap: 0.5rem;
+    }
+
+    .tips-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    .tips-list {
+        gap: 1rem;
+    }
+
+    .tips-list li {
+        font-size: 0.9rem;
+        padding-left: 1.8rem;
+    }
+
+    .tips-list li::before {
+        width: 14px;
+        height: 14px;
+        top: 5px;
+    }
+
+    .about-header {
+        margin-bottom: 3rem;
+    }
+
+    .about-title {
+        font-size: 2.2rem;
+    }
+
+    .about-intro {
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+
+    .overlap-cards-container {
+        margin-bottom: 3rem;
+    }
+
+    .overlap-card {
+        padding: 2.3rem 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .overlap-card-icon {
+        width: 55px;
+        height: 55px;
+        margin-bottom: 1.5rem;
+        padding: 0.9rem;
+    }
+
+    .overlap-card-title {
+        font-size: 1.6rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .overlap-card-text {
+        font-size: 0.95rem;
+        line-height: 1.75;
+    }
+
+    .stages-timeline {
+        padding: 2.5rem 1.3rem;
+        margin-bottom: 3rem;
+    }
+
+    .stages-timeline-title {
+        font-size: 1.7rem;
+        margin-bottom: 2rem;
+    }
+
+    .stages-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .stage-item {
+        padding: 1.8rem 1.2rem;
+    }
+
+    .stage-number {
+        font-size: 2.3rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .stage-name {
+        font-size: 1rem;
+    }
+
+    .tech-glass-card {
+        padding: 2.8rem 1.8rem;
+    }
+
+    .tech-title {
+        font-size: 1.7rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .tech-text {
+        font-size: 0.95rem;
+        line-height: 1.8;
+    }
+
+    .loading-spinner {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 2rem;
+    }
+
+    .loading-spinner::before {
+        border-width: 6px;
+    }
+
+    .loading-spinner::after {
+        width: 55px;
+        height: 55px;
+    }
+
+    .loading-text {
+        font-size: 1.3rem;
+    }
+
+    .loading-subtext {
+        font-size: 0.95rem;
+    }
+
+    .splash-logo {
+        font-size: 2rem;
+    }
+
+    .splash-tagline {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .nav-title {
+        font-size: 1rem;
+    }
+
+    .hero-title {
+        font-size: 1.7rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.88rem;
+    }
+
+    .scan-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .scan-area-wrapper {
+        height: 280px;
+    }
+
+    .result-container {
+        padding: 1.8rem 1.1rem;
+    }
+
+    .overlap-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .stages-timeline {
+        padding: 2rem 1rem;
+    }
+
+    .tech-glass-card {
+        padding: 2.5rem 1.5rem;
+    }
+}
+    </style>
+
+</head>
+<body>
+    <div class="wave-background">
+        <div class="wave wave-1"></div>
+        <div class="wave wave-2"></div>
+        <div class="wave wave-3"></div>
+    </div>
+
+    <div id="splash-screen">
+        <div class="banana-animation">
+            <div class="peel-left"></div>
+            <div class="banana-body"></div>
+            <div class="peel-right"></div>
+        </div>
+        <div class="splash-logo">BananaLab</div>
+        <div class="splash-tagline">AI-Powered Freshness Detection</div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Analyzing your banana...</div>
+            <div class="loading-subtext">Please wait a moment ✨</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand" onclick="showPage('home')">
+                    <img src="LOGOAOLAI.PNG" alt="BananaLab Logo" class="nav-logo-img">
+                    <span class="nav-title">BananaLab</span>
+                </div>
+                <ul class="nav-menu">
+                    <li><span class="nav-link active" onclick="showPage('home')">Home</span></li>
+                    <li><span class="nav-link" onclick="showPage('about')">About</span></li>
+                    <li>
+                        <span class="nav-scan-btn" onclick="showPage('scan')">
+                            <svg class="nav-scan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            Scan
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="home-page active page" id="home-page">
+            <section class="hero-section">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        Find Your <span class="highlight">Perfect Banana</span> Match!
+                    </h1>
+                    <p class="hero-subtitle">
+                        <span class="bold">AI-powered banana freshness detector.</span> 
+                        Scan, discover ripeness stage, and know exactly when your banana hits perfection 🍌✨
+                    </p>
+                    <span class="hero-cta" onclick="showPage('scan')">
+                        <span>Start Scanning</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                </div>
+                <div class="hero-visual">
+                    <img src="LOGOAOLAI.PNG" alt="Banana Illustration" class="hero-banana-img">
+                </div>
+            </section>
+
+            <section class="features-section">
+                <h2 class="features-title">Why Choose BananaLab?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <h3 class="feature-title">Lightning Fast</h3>
+                        <p class="feature-description">Get instant results in seconds. Upload or scan your banana and receive immediate ripeness analysis.</p>
+                    </div>
+                    <div class="feature-card">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <h3 class="feature-title">AI Accuracy</h3>
+                        <p class="feature-description">Powered by advanced machine learning trained on thousands of banana images for precise detection.</p>
+                    </div>
+                    <div class="feature-card">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        <h3 class="feature-title">Smart Predictions</h3>
+                        <p class="feature-description">Get accurate shelf life predictions and personalized storage tips for perfect banana freshness.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="scan-page page" id="scan-page">
+            <div class="scan-header">
+                <h1 class="scan-title">Scan Your Banana</h1>
+                <p class="scan-subtitle">Take a photo or upload an image to analyze ripeness</p>
+            </div>
+
+            <div class="scan-card">
+                <div class="tab-nav">
+                    <button class="tab-button active" onclick="switchTab('camera')">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Camera
+                    </button>
+                    <button class="tab-button" onclick="switchTab('upload')">
+                        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Upload
+                    </button>
+                </div>
+
+                <div class="scan-container active" id="camera-section">
+                    <div class="scan-area-wrapper">
+                        <div class="scan-area" id="camera-area" onclick="handleCameraBoxClick()">
+                            <div id="camera-placeholder">
+                                <svg class="banana-scan-icon" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M35 40C35 40 30 45 30 55C30 65 35 80 47 90C59 100 77 103 87 97C97 91 101 80 101 69C101 58 95 48 85 43C75 38 53 35 43 37C38 38 35 40 35 40Z" fill="#FFE9A8" stroke="#FFDB7A" stroke-width="3"/>
+                                    <circle cx="65" cy="65" r="18" fill="#5C4B37" stroke="#8B7355" stroke-width="3"/>
+                                    <circle cx="65" cy="65" r="12" fill="#FFFFFF" opacity="0.3"/>
+                                    <circle cx="68" cy="62" r="4" fill="#FFFFFF" opacity="0.6"/>
+                                    <circle cx="85" cy="50" r="5" fill="#FFD700" opacity="0.8"/>
+                                    <rect x="40" y="45" width="10" height="8" rx="2" fill="#8B7355"/>
+                                </svg>
+                                <div class="scan-text">Click to open camera</div>
+                                <div class="scan-hint">Make sure you have good lighting for best results</div>
+                            </div>
+                            <video id="webcam" autoplay playsinline></video>
+                            <div class="preview-overlay" id="preview-camera">
+                                <img id="preview-img-camera" class="preview-img" alt="Preview">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-secondary" id="btn-camera" onclick="startCamera()">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Open Camera
+                        </button>
+                        <button class="btn btn-primary" id="btn-capture" onclick="capturePhoto()" style="display:none;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            Capture Photo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="scan-container" id="upload-section">
+                    <div class="scan-area-wrapper">
+                        <div class="scan-area" onclick="document.getElementById('file-input').click()">
+                            <div id="upload-placeholder">
+                                <svg class="banana-scan-icon" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M60 85 L60 35 M45 50 L60 35 L75 50" stroke="#FFDB7A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="60" cy="60" r="45" stroke="#FFE9A8" stroke-width="4" fill="none" stroke-dasharray="8,6" opacity="0.6"/>
+                                    <line x1="35" y1="85" x2="85" y2="85" stroke="#FFDB7A" stroke-width="5" stroke-linecap="round"/>
+                                </svg>
+                                <div class="scan-text">Click to upload photo</div>
+                                <div class="scan-hint">Format: JPG, PNG • Max: 5MB</div>
+                            </div>
+                            <div class="preview-overlay" id="preview-upload">
+                                <img id="preview-img-upload" class="preview-img" alt="Preview">
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+                </div>
+
+                <button class="btn btn-primary" id="btn-analyze" onclick="analyzeBanana()" disabled style="width:100%;">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    Analyze Now
+                </button>
+            </div>
+
+            <div class="result-section" id="result-section">
+                <div class="result-container">
+                    <div class="stage-visual">
+                        <div class="stage-dot" data-stage="1"></div>
+                        <div class="stage-dot" data-stage="2"></div>
+                        <div class="stage-dot" data-stage="3"></div>
+                        <div class="stage-dot" data-stage="4"></div>
+                    </div>
+
+                    <div class="result-grid">
+                        <div class="result-card">
+                            <div class="result-label">Ripeness Stage</div>
+                            <div class="result-value" id="stage-result">Ripe</div>
+                            <div class="result-description" id="stage-description">Mostly yellow color</div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="confidence-bar" style="width:0%"></div>
+                            </div>
+                            <div style="margin-top:1.5rem; color: var(--text-light); font-weight:600;">
+                                Confidence: <span id="confidence-value">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="result-card">
+                            <div class="result-label">Shelf Life</div>
+                            <div class="result-value" id="shelf-life">3-4 Days</div>
+                            <div class="shelf-life-detail">From today</div>
+                        </div>
+                    </div>
+
+                    <div class="tips-box">
+                        <div class="tips-title">
+                            <svg class="tips-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                <circle cx="12" cy="17" r="1" fill="white"/>
+                            </svg>
+                            Storage Tips
+                        </div>
+                        <ul class="tips-list" id="tips-list">
+                            <li>Store at room temperature</li>
+                            <li>Keep away from sunlight</li>
+                            <li>Separate from other fruits</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="about-page page" id="about-page">
+            <div class="about-header">
+                <h1 class="about-title">About BananaLab</h1>
+                <p class="about-intro">Your intelligent companion for perfect banana selection. Powered by AI, designed for simplicity.</p>
+            </div>
+
+            <div class="overlap-cards-container">
+                <div class="overlap-card overlap-card-1">
+                    <svg class="overlap-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <h2 class="overlap-card-title">Our Mission</h2>
+                    <p class="overlap-card-text">BananaLab uses cutting-edge AI to help you pick the perfect banana every time. Our system analyzes ripeness with incredible accuracy and predicts exactly when your banana will be at its best.</p>
+                </div>
+
+                <div class="overlap-card overlap-card-2">
+                    <svg class="overlap-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <h2 class="overlap-card-title">How It Works</h2>
+                    <p class="overlap-card-text">Our AI model was trained on thousands of banana images across 4 distinct ripeness stages. Using computer vision and machine learning, BananaLab identifies subtle visual cues to predict ripeness and shelf life with remarkable precision.</p>
+                </div>
+            </div>
+
+            <div class="stages-timeline">
+                <h3 class="stages-timeline-title">The 4 Ripeness Stages</h3>
+                
+                <div class="stages-grid">
+                    <div class="stage-item" data-stage="1">
+                        <div class="stage-number">1</div>
+                        <div class="stage-name">Unripe</div>
+                    </div>
+                    <div class="stage-item" data-stage="2">
+                        <div class="stage-number">2</div>
+                        <div class="stage-name">Ripe</div>
+                    </div>
+                    <div class="stage-item" data-stage="3">
+                        <div class="stage-number">3</div>
+                        <div class="stage-name">Overripe</div>
+                    </div>
+                    <div class="stage-item" data-stage="4">
+                        <div class="stage-number">4</div>
+                        <div class="stage-name">Rotten</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tech-glass-card">
+                <h2 class="tech-title">Technology Behind BananaLab</h2>
+                <p class="tech-text">Powered by TensorFlow.js and Google Teachable Machine, bringing enterprise-grade AI directly to your browser. No downloads, no server uploads—everything runs securely on your device for instant results and complete privacy.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let model = null;
+        let webcamStream = null;
+        let currentPreviewImg = null;
+        const canvas = document.createElement('canvas');
+
+        const MODEL_URL = "./model/";
+
+        async function loadModel() {
+            try {
+                console.log("🔄 Loading model from:", MODEL_URL);
+                model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+                console.log("✅ Model loaded successfully!");
+                console.log("📊 Model classes:", model.getClassLabels());
+            } catch (e) {
+                console.error("❌ Error loading model:", e);
+                alert("Failed to load AI model. Please check if model files are in the 'model/' folder.");
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadModel);
+
+        async function predictWithModel(img) {
+            if (!model) {
+                console.log("⚠️ Model not loaded - cannot predict");
+                alert("Model is still loading or failed to load. Please refresh the page.");
+                return null;
+            }
+            
+            try {
+                console.log("🔍 Running AI prediction...");
+                const prediction = await model.predict(img);
+                
+                let maxProb = 0;
+                let predictedClass = "";
+                let predictedIndex = 0;
+                
+                prediction.forEach((p, i) => {
+                    console.log(`  [${i}] "${p.className}" = ${(p.probability * 100).toFixed(2)}%`);
+                    if (p.probability > maxProb) {
+                        maxProb = p.probability;
+                        predictedClass = p.className;
+                        predictedIndex = i;
+                    }
+                });
+                
+                const confidencePercent = maxProb * 100;
+                
+                const normalizedClass = predictedClass.toLowerCase().trim();
+                const stageMap = {
+                    "unripe": 1, "ripe": 2, "overripe": 3, "rotten": 4,
+                    "green": 1, "yellow": 2, "spotted": 3, "brown": 4,
+                    "class 1": 1, "class 2": 2, "class 3": 3, "class 4": 4,
+                    "stage 1": 1, "stage 2": 2, "stage 3": 3, "stage 4": 4,
+                    "0": 1, "1": 2, "2": 3, "3": 4
+                };
+                
+                let stage = stageMap[normalizedClass] || (predictedIndex + 1);
+                if (stage > 4) stage = 4;
+                
+                return {
+                    stage: stage,
+                    stageName: getStageName(stage),
+                    confidence: confidencePercent,
+                    shelfLife: getShelfLife(stage),
+                    tips: getStorageTips(stage),
+                    description: getStageDescription(stage)
+                };
+            } catch (e) {
+                console.error("❌ Prediction error:", e);
+                alert("Prediction failed. Please try again.");
+                return null;
+            }
+        }
+
+        function getStageName(stage) {
+            return {
+                1: "Unripe",
+                2: "Ripe",
+                3: "Overripe",
+                4: "Rotten"
+            }[stage] || "Unknown";
+        }
+
+        function getStageDescription(stage) {
+            return {
+                1: "All green - Completely green peel, firm and hard texture",
+                2: "Mostly yellow - Bright yellow color, perfect for eating",
+                3: "Yellow with brown spots - Sweet taste, very soft texture",
+                4: "Mostly brown/black - Dark brown/black skin, may have mold"
+            }[stage] || "Unknown stage";
+        }
+
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+            
+            const targetPage = document.getElementById(pageName + '-page');
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+            
+            document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+            const links = document.querySelectorAll('.nav-link');
+            links.forEach(link => {
+                if (link.textContent.trim().toLowerCase() === pageName.toLowerCase()) {
+                    link.classList.add('active');
+                }
+            });
+            
+            if (pageName !== 'scan') {
+                stopCamera();
+                resetScanArea();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            event.target.closest('.tab-button').classList.add('active');
+            
+            if (tab === 'camera') {
+                document.getElementById('camera-section').style.display = 'block';
+                document.getElementById('upload-section').style.display = 'none';
+            } else {
+                document.getElementById('camera-section').style.display = 'none';
+                document.getElementById('upload-section').style.display = 'block';
+            }
+            
+            document.getElementById('btn-analyze').disabled = true;
+            document.getElementById('result-section').style.display = 'none';
+            stopCamera();
+            resetScanArea();
+        }
+
+        function resetScanArea() {
+            document.getElementById('camera-placeholder').style.display = 'flex';
+            document.getElementById('upload-placeholder').style.display = 'flex';
+            document.getElementById('preview-camera').style.display = 'none';
+            document.getElementById('preview-upload').style.display = 'none';
+            document.getElementById('webcam').style.display = 'none';
+            document.getElementById('btn-camera').style.display = 'flex';
+            document.getElementById('btn-capture').style.display = 'none';
+            currentPreviewImg = null;
+        }
+
+        function handleCameraBoxClick() {
+            const webcam = document.getElementById('webcam');
+            const preview = document.getElementById('preview-camera');
+            
+            if (webcam.style.display === 'none' && preview.style.display === 'none') {
+                startCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }});
+                const video = document.getElementById('webcam');
+                video.srcObject = webcamStream;
+                video.style.display = 'block';
+                document.getElementById('camera-placeholder').style.display = 'none';
+                document.getElementById('btn-camera').style.display = 'none';
+                document.getElementById('btn-capture').style.display = 'flex';
+            } catch (e) {
+                alert('Camera access denied');
+            }
+        }
+
+        function stopCamera() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(t => t.stop());
+                webcamStream = null;
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('webcam');
+            const preview = document.getElementById('preview-img-camera');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            currentPreviewImg = preview;
+            
+            document.getElementById('webcam').style.display = 'none';
+            document.getElementById('preview-camera').style.display = 'flex';
+            document.getElementById('btn-analyze').disabled = false;
+            document.getElementById('btn-capture').style.display = 'none';
+            document.getElementById('btn-camera').style.display = 'flex';
+            stopCamera();
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const preview = document.getElementById('preview-img-upload');
+                    preview.src = ev.target.result;
+                    currentPreviewImg = preview;
+                    
+                    document.getElementById('upload-placeholder').style.display = 'none';
+                    document.getElementById('preview-upload').style.display = 'flex';
+                    document.getElementById('btn-analyze').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function analyzeBanana() {
+            if (!model) {
+                alert("Model is still loading. Please wait a moment and try again.");
+                return;
+            }
+            
+            document.getElementById('loading-overlay').style.display = 'block';
+            document.getElementById('result-section').style.display = 'none';
+            
+            const img = currentPreviewImg;
+            await new Promise(r => img.complete ? r() : img.onload = r);
+            await new Promise(r => setTimeout(r, 1500));
+            
+            const result = await predictWithModel(img);
+            
+            document.getElementById('loading-overlay').style.display = 'none';
+            
+            if (result) {
+                displayResult(result);
+            }
+        }
+
+        function displayResult(result) {
+            document.getElementById('result-section').style.display = 'block';
+            
+            document.querySelectorAll('.stage-dot').forEach((d, i) => {
+                d.classList.toggle('active', i + 1 === result.stage);
+            });
+            
+            document.getElementById('stage-result').textContent = result.stageName;
+            document.getElementById('stage-description').textContent = result.description;
+            document.getElementById('confidence-value').textContent = result.confidence.toFixed(1) + '%';
+            setTimeout(() => document.getElementById('confidence-bar').style.width = result.confidence + '%', 400);
+            
+            document.getElementById('shelf-life').textContent = result.shelfLife;
+            
+            const tipsList = document.getElementById('tips-list');
+            tipsList.innerHTML = '';
+            result.tips.forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                tipsList.appendChild(li);
+            });
+            
+            setTimeout(() => document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+        }
+
+        function getShelfLife(stage) {
+            return {
+                1: "5-7 Days",
+                2: "2-3 Days",
+                3: "1 Day",
+                4: "<1 Day"
+            }[stage] || "Unknown";
+        }
+
+        function getStorageTips(stage) {
+            const tips = {
+                1: [
+                    "Store at room temperature (18-22°C)", 
+                    "Keep away from direct sunlight", 
+                    "Will ripen naturally in 5-7 days",
+                    "Keep separate from ripe fruits"
+                ],
+                2: [
+                    "Perfect for eating now - consume within 2-3 days", 
+                    "Store at room temperature if eating within 2 days", 
+                    "Refrigerate to extend freshness by 1-2 days",
+                    "Ideal sweetness and texture for eating"
+                ],
+                3: [
+                    "Eat immediately or refrigerate", 
+                    "Excellent for smoothies and banana bread", 
+                    "Very sweet - perfect for baking",
+                    "Use within 24 hours"
+                ],
+                4: [
+                    "Too rotten for safe fresh consumption", 
+                    "May be used for banana bread if no mold", 
+                    "Peel and freeze for smoothies only if not moldy",
+                    "Discard immediately if mold detected"
+                ]
+            };
+            return tips[stage] || ["Store properly"];
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"tfjsVersion":"1.7.4","tmVersion":"2.4.10","packageVersion":"0.8.4-alpha2","packageName":"@teachablemachine/image","timeStamp":"2025-12-14T01:04:17.409Z","userMetadata":{},"modelName":"tm-my-image-model","labels":["Stage 1 - Unripe","Stage 2 - Ripe","Stage 3 - Overripe","Stage 4 - Rotten"],"imageSize":224}
